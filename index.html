@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grill Cleaning Checklist</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1A1A2E 0%, #0F0F1A 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        /* Passcode Lock Screen */
+        .passcode-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1A1A2E 0%, #0F0F1A 100%);
+            z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .passcode-overlay.hidden { display: none; }
+        .passcode-container {
+            background: white; border-radius: 15px; padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 300px; width: 90%;
+        }
+        .passcode-container h1 { color: #1A1A2E; margin-bottom: 10px; font-size: 24px; }
+        .passcode-container p { color: #666; margin-bottom: 25px; font-size: 14px; }
+        .passcode-input {
+            width: 100%; padding: 15px; font-size: 24px; border: 2px solid #ddd; border-radius: 8px;
+            text-align: center; letter-spacing: 5px; margin-bottom: 20px; font-family: monospace;
+        }
+        .passcode-input:focus { outline: none; border-color: #C8A96E; box-shadow: 0 0 10px rgba(200,169,110,0.35); }
+        .passcode-btn {
+            width: 100%; padding: 12px; background: #1A1A2E; color: white; border: none; border-radius: 8px;
+            font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.3s ease;
+        }
+        .passcode-btn:hover { background: #0F0F1A; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(26,26,46,0.35); }
+        .passcode-error { color: #e74c3c; font-size: 13px; margin-top: 10px; display: none; }
+        .passcode-error.show { display: block; }
+
+        .container {
+            max-width: 800px; margin: 0 auto; background: white; border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1A1A2E 0%, #0F0F1A 100%);
+            color: white; padding: 20px; text-align: center; border-bottom: 3px solid #C8A96E;
+        }
+        .header .brand { font-size: 12px; font-weight: bold; letter-spacing: 4px; color: #C8A96E; margin-bottom: 8px; }
+        .header h1 { font-size: 26px; margin-bottom: 4px; }
+        .header p { font-size: 13px; color: #AAAAAA; }
+
+        .content { padding: 20px; }
+
+        /* Purpose box */
+        .purpose-box {
+            display: flex; background: #F5EFE6; border-radius: 4px; margin-bottom: 20px; overflow: hidden;
+        }
+        .purpose-box .accent { width: 6px; background: #C8A96E; flex-shrink: 0; }
+        .purpose-box .text { padding: 14px 16px; }
+        .purpose-box .text h3 { color: #1A1A2E; font-size: 13px; letter-spacing: 1px; margin-bottom: 6px; }
+        .purpose-box .text p { color: #2C2C2C; font-size: 13px; line-height: 1.5; }
+
+        .section { margin-bottom: 22px; }
+
+        .section-title {
+            background: #1A1A2E; color: #ffffff; padding: 12px; font-size: 15px; font-weight: bold;
+            border-bottom: 2px solid #C8A96E; margin-bottom: 12px; border-radius: 3px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 14px; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; font-family: inherit;
+        }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        /* Checklist */
+        .checklist-item {
+            display: flex; align-items: center; gap: 12px; background: #f9f9f9; padding: 12px 14px;
+            margin-bottom: 8px; border-radius: 5px; border: 1px solid #e0e0e0; cursor: pointer; transition: all 0.2s ease;
+        }
+        .checklist-item .box {
+            flex-shrink: 0; width: 24px; height: 24px; border: 2px solid #C8A96E; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #C8A96E; background: white;
+        }
+        .checklist-item.checked { background: #1A1A2E; border-color: #1A1A2E; }
+        .checklist-item.checked .box { background: #C8A96E; border-color: #C8A96E; color: #1A1A2E; }
+        .checklist-item .label { font-size: 14px; color: #333; }
+        .checklist-item.checked .label { color: #ffffff; }
+
+        .button-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .btn-primary { background: #1A1A2E; color: white; }
+        .btn-primary:hover { background: #0F0F1A; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(26,26,46,0.35); }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-secondary { background: #95a5a6; color: white; width: 100%; margin-top: 8px; }
+        .btn-secondary:hover { background: #7f8c8d; }
+
+        .footer-warning {
+            text-align: center; border-top: 3px solid #C8A96E; padding-top: 12px; margin-top: 25px; font-size: 12px;
+        }
+        .footer-warning b { color: #C8A96E; }
+        .footer-warning span { color: #888888; }
+
+        .qr-section { background: #f9f9f9; padding: 20px; border-radius: 5px; text-align: center; margin-top: 10px; }
+        #qrcode { display: inline-block; margin: 15px 0; }
+        .qr-link {
+            display: inline-block; background: #1A1A2E; color: white; padding: 10px 15px; border-radius: 5px;
+            text-decoration: none; font-size: 12px; word-break: break-all; margin-top: 10px; max-width: 100%;
+        }
+
+        .success-message, .error-message, .pending-reports {
+            padding: 12px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 14px;
+        }
+        .success-message { background: #d4edda; color: #155724; }
+        .error-message { background: #f8d7da; color: #721c24; }
+        .pending-reports { background: #fff3cd; color: #856404; }
+        .success-message.show, .error-message.show, .pending-reports.show { display: block; }
+
+        .tab-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px; border: 2px solid #ddd; background: white; border-radius: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+        .tab-btn.active { background: #1A1A2E; color: white; border-color: #1A1A2E; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .offline-indicator {
+            position: fixed; top: 10px; right: 10px; padding: 8px 12px; border-radius: 5px;
+            font-size: 12px; font-weight: 600; z-index: 999;
+        }
+        .offline-indicator.online { background: #27ae60; color: white; }
+        .offline-indicator.offline { background: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- Passcode Lock Screen -->
+    <div class="passcode-overlay" id="passcodeOverlay">
+        <div class="passcode-container">
+            <h1>Grill Cleaning SOP</h1>
+            <p>Enter passcode to access</p>
+            <input type="password" id="passcodeInput" class="passcode-input" placeholder="••••" maxlength="4">
+            <button class="passcode-btn" onclick="checkPasscode()">Unlock</button>
+            <div class="passcode-error" id="passcodeError">❌ Incorrect passcode</div>
+        </div>
+    </div>
+
+    <div class="offline-indicator online" id="offlineIndicator">🟢 Online</div>
+
+    <div class="container">
+        <div class="header">
+            <div class="brand">ONNI GROUP</div>
+            <h1>Grill Cleaning</h1>
+            <p>Standard Operating Procedure &nbsp;|&nbsp; Amenity & Building Maintenance &nbsp;|&nbsp; Outdoor Grill Stations</p>
+        </div>
+
+        <div class="content">
+            <div class="pending-reports" id="pendingReports">
+                ⏳ <strong id="pendingCount">0</strong> report(s) pending send. They will send automatically when you get service.
+            </div>
+            <div class="success-message" id="successMessage">✅ Report saved and sent.</div>
+            <div class="error-message" id="errorMessage">❌ Error sending email. Please try again.</div>
+
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab(event, 'form')">New Cleaning</button>
+                <button class="tab-btn" onclick="switchTab(event, 'history')">History</button>
+                <button class="tab-btn" onclick="switchTab(event, 'qr')">Share Link</button>
+            </div>
+
+            <!-- Form Tab -->
+            <div id="form" class="tab-content active">
+
+                <div class="purpose-box">
+                    <div class="accent"></div>
+                    <div class="text">
+                        <h3>PURPOSE OF THIS SOP</h3>
+                        <p>To establish a safe, consistent, and thorough process for cleaning, inspecting, and preparing the outdoor grill for the next guest or resident use. Every step must be completed in order, and no grill is returned to service until it passes both the final inspection and the operational check.</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cleanDate">Date:</label>
+                            <input type="date" id="cleanDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="technicianName">Technician:</label>
+                            <input type="text" id="technicianName" placeholder="Enter your name" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="grillLocation">Grill / Location:</label>
+                            <input type="text" id="grillLocation" placeholder="e.g. Pool Deck Grill 1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signature">Signature:</label>
+                            <input type="text" id="signature" placeholder="Type full name to sign">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="checklistSections"></div>
+
+                <div class="section">
+                    <div class="section-title">📝 Notes</div>
+                    <div class="form-group">
+                        <label for="notes">Additional observations:</label>
+                        <textarea id="notes" placeholder="Describe any issues or observations..."></textarea>
+                    </div>
+                </div>
+
+                <div class="button-bar">
+                    <button type="button" class="btn btn-primary" onclick="submitInspection()">📤 Submit & Send Report</button>
+                    <button type="button" class="btn btn-danger" onclick="resetForm()">🔄 Clear Form</button>
+                </div>
+
+                <div class="footer-warning">
+                    <b>IF ANY COMPONENT FAILS THE OPERATIONAL CHECK, REMOVE THE GRILL FROM SERVICE IMMEDIATELY</b>
+                    &nbsp;•&nbsp; <span>Report the issue to your direct supervisor for repair or further inspection.</span>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history" class="tab-content">
+                <div class="section">
+                    <div class="section-title">📋 Cleaning History</div>
+                    <div id="historyList" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+
+            <!-- QR Code Tab -->
+            <div id="qr" class="tab-content">
+                <div class="qr-section">
+                    <h3>📱 Share This Checklist Link</h3>
+                    <p style="margin: 15px 0; color: #666;">Share this QR code with team members. They'll need the passcode to unlock it.</p>
+                    <div id="qrcode"></div>
+                    <div class="qr-link" id="shareLink"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================================
+        // CONFIGURATION — update these three values before publishing to GitHub
+        // =====================================================================
+        const TARGET_EMAIL = 'REPLACE_WITH_YOUR_EMAIL@onni.com';   // where completed reports are sent
+        const CORRECT_PASSCODE = '1120';                          // 4-digit passcode to unlock the app
+        const PAGE_URL = 'https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/'; // used for the QR code / share link
+        // =====================================================================
+
+        const SECTIONS = [
+            { title: '1  |  PREPARATION & SETUP', items: [
+                'Grill is cool enough to handle safely',
+                'Appropriate PPE worn (gloves as required)',
+                'Cleaning tools and cleaning cart gathered',
+                'Replacement aluminum foil on hand'
+            ]},
+            { title: '2  |  GRILL TOPS & COOKING GRATES', items: [
+                'Grill tops removed and stored safely (if applicable)',
+                'Grill tops inspected before reinstalling',
+                'Cooking grates removed from the grill',
+                'Grates placed on cleaning cart for washing/inspection'
+            ]},
+            { title: '3  |  BURN-OFF & SCRAPE', items: [
+                'Existing foil left in place for burn-off',
+                'Grill turned on, set to ~450°F (232°C)',
+                'Heated 10–15 minutes to loosen grease/carbon',
+                'Grill turned off before opening or scraping',
+                'Lid carefully opened',
+                'All cooking surfaces scraped clean of carbon, grease, and food residue'
+            ]},
+            { title: '4  |  FOIL & GREASE TRAY', items: [
+                'Used foil removed and discarded (both sides)',
+                'Area beneath foil wiped/cleaned as needed',
+                'New foil installed and properly positioned',
+                'Grease tray removed, emptied, and cleaned',
+                'Grease tray inspected for damage or wear',
+                'Grease tray reinstalled securely'
+            ]},
+            { title: '5  |  REASSEMBLY & FINAL INSPECTION', items: [
+                'Clean grates reinstalled and properly seated',
+                'Grill tops reinstalled (if removed)',
+                'All cooking surfaces are clean',
+                'Aluminum foil has been replaced',
+                'Grease tray clean and properly installed',
+                'Surrounding area clean, free of grease/debris'
+            ]},
+            { title: '6  |  OPERATIONAL CHECK', items: [
+                'Igniter operation verified',
+                'Gas flow verified',
+                'Burner ignition confirmed on all burners',
+                'All burners lighting evenly',
+                'Temperature controls operating correctly',
+                'Lid and handles functioning properly'
+            ]}
+        ];
+
+        // Flatten to a single ordered list of { id, label } for storage/reporting
+        const ITEMS = [];
+        SECTIONS.forEach((section, sIdx) => {
+            section.items.forEach((label, iIdx) => {
+                ITEMS.push({ id: `item_${sIdx}_${iIdx}`, label });
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('passcodeInput').focus();
+            document.getElementById('passcodeInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') checkPasscode();
+            });
+
+            renderChecklist();
+            setTodayDate();
+            loadHistory();
+            generateQRCode();
+            checkPendingReports();
+            setupOnlineOfflineHandler();
+            loadFormFromLocalStorage();
+            setInterval(checkPendingReports, 5000);
+        });
+
+        // ---------- Passcode ----------
+        function checkPasscode() {
+            const input = document.getElementById('passcodeInput').value;
+            const errorMsg = document.getElementById('passcodeError');
+            if (input === CORRECT_PASSCODE) {
+                document.getElementById('passcodeOverlay').classList.add('hidden');
+                sessionStorage.setItem('unlocked', 'true');
+            } else {
+                errorMsg.classList.add('show');
+                document.getElementById('passcodeInput').value = '';
+                document.getElementById('passcodeInput').focus();
+                setTimeout(() => errorMsg.classList.remove('show'), 2000);
+            }
+        }
+        window.addEventListener('load', function () {
+            if (sessionStorage.getItem('unlocked') === 'true') {
+                document.getElementById('passcodeOverlay').classList.add('hidden');
+            }
+        });
+
+        function setTodayDate() {
+            document.getElementById('cleanDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        // ---------- Online/Offline ----------
+        function setupOnlineOfflineHandler() {
+            window.addEventListener('online', () => updateOnlineStatus(true));
+            window.addEventListener('offline', () => updateOnlineStatus(false));
+            updateOnlineStatus(navigator.onLine);
+        }
+        function updateOnlineStatus(isOnline) {
+            const indicator = document.getElementById('offlineIndicator');
+            if (isOnline) {
+                indicator.textContent = '🟢 Online';
+                indicator.classList.remove('offline'); indicator.classList.add('online');
+            } else {
+                indicator.textContent = '🔴 Offline';
+                indicator.classList.remove('online'); indicator.classList.add('offline');
+            }
+        }
+
+        // ---------- Render checklist ----------
+        function renderChecklist() {
+            const container = document.getElementById('checklistSections');
+            container.innerHTML = SECTIONS.map((section, sIdx) => `
+                <div class="section">
+                    <div class="section-title">${section.title}</div>
+                    ${section.items.map((label, iIdx) => `
+                        <div class="checklist-item" id="row_item_${sIdx}_${iIdx}" onclick="toggleCheck('item_${sIdx}_${iIdx}')">
+                            <div class="box" id="box_item_${sIdx}_${iIdx}"></div>
+                            <div class="label">${label}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        function toggleCheck(itemId) {
+            const row = document.getElementById('row_' + itemId);
+            const box = document.getElementById('box_' + itemId);
+            const isChecked = row.classList.toggle('checked');
+            box.textContent = isChecked ? '✓' : '';
+            row.dataset.value = isChecked ? 'done' : '';
+            saveFormToLocalStorage();
+        }
+
+        // ---------- Local storage (draft) ----------
+        function saveFormToLocalStorage() {
+            const formData = {
+                date: document.getElementById('cleanDate').value,
+                technician: document.getElementById('technicianName').value,
+                location: document.getElementById('grillLocation').value,
+                signature: document.getElementById('signature').value,
+                notes: document.getElementById('notes').value,
+                items: {}
+            };
+            ITEMS.forEach(item => {
+                const row = document.getElementById('row_' + item.id);
+                if (row && row.dataset.value) formData.items[item.id] = row.dataset.value;
+            });
+            localStorage.setItem('grillCurrentForm', JSON.stringify(formData));
+        }
+
+        function loadFormFromLocalStorage() {
+            const saved = localStorage.getItem('grillCurrentForm');
+            if (!saved) return;
+            const data = JSON.parse(saved);
+            document.getElementById('cleanDate').value = data.date || '';
+            document.getElementById('technicianName').value = data.technician || '';
+            document.getElementById('grillLocation').value = data.location || '';
+            document.getElementById('signature').value = data.signature || '';
+            document.getElementById('notes').value = data.notes || '';
+            Object.keys(data.items || {}).forEach(itemId => {
+                const row = document.getElementById('row_' + itemId);
+                const box = document.getElementById('box_' + itemId);
+                if (row && data.items[itemId] === 'done') {
+                    row.classList.add('checked');
+                    row.dataset.value = 'done';
+                    box.textContent = '✓';
+                }
+            });
+        }
+
+        // ---------- History ----------
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('grillHistory')) || [];
+            const historyList = document.getElementById('historyList');
+            if (history.length === 0) {
+                historyList.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">No cleanings logged yet.</p>';
+                return;
+            }
+            historyList.innerHTML = history.map((entry, index) => `
+                <div style="background:#f9f9f9;padding:12px;margin-bottom:10px;border-radius:5px;border-left:4px solid ${entry.status === 'sent' ? '#27ae60' : '#e74c3c'};">
+                    <strong>${entry.date} — ${entry.location}</strong><br>
+                    Technician: ${entry.technician}<br>
+                    Status: <span style="color:${entry.status === 'sent' ? '#27ae60' : '#e74c3c'};font-weight:bold;">${entry.status === 'sent' ? '✅ Sent' : '⏳ Pending Send'}</span><br>
+                    <button type="button" class="btn btn-secondary" onclick="viewReport(${index})">View Report</button>
+                </div>
+            `).join('');
+        }
+
+        // ---------- Submit ----------
+        function submitInspection() {
+            if (!document.getElementById('cleanDate').value) { alert('Please select a date'); return; }
+            if (!document.getElementById('technicianName').value) { alert('Please enter technician name'); return; }
+            if (!document.getElementById('grillLocation').value) { alert('Please enter the grill / location'); return; }
+
+            const report = {
+                id: Date.now(),
+                date: document.getElementById('cleanDate').value,
+                technician: document.getElementById('technicianName').value,
+                location: document.getElementById('grillLocation').value,
+                signature: document.getElementById('signature').value,
+                timestamp: new Date().toISOString(),
+                items: {},
+                notes: document.getElementById('notes').value,
+                status: 'pending'
+            };
+            ITEMS.forEach(item => {
+                const row = document.getElementById('row_' + item.id);
+                if (row && row.dataset.value) report.items[item.id] = row.dataset.value;
+            });
+
+            let history = JSON.parse(localStorage.getItem('grillHistory')) || [];
+            history.unshift(report);
+            localStorage.setItem('grillHistory', JSON.stringify(history));
+
+            generateAndSendReport(report, history);
+            showSuccessMessage();
+            setTimeout(() => { resetForm(); loadHistory(); checkPendingReports(); }, 1500);
+        }
+
+        function generateAndSendReport(report, history) {
+            const element = document.createElement('div');
+            element.innerHTML = generatePDFHTML(report);
+            element.style.position = 'fixed';
+            element.style.top = '0';
+            element.style.left = '-9999px';
+            element.style.width = '800px';
+            element.style.background = '#ffffff';
+            document.body.appendChild(element);
+
+            const filename = `Grill_Cleaning_${report.date}_${report.location.replace(/\s+/g, '_')}.pdf`;
+            const opt = {
+                margin: 10, filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, backgroundColor: '#ffffff' },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+
+            html2pdf().set(opt).from(element).toPdf().output('blob').then(pdfBlob => {
+                document.body.removeChild(element);
+                const downloadUrl = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+                sendEmailWithAttachment(report, pdfBlob, filename, history);
+            }).catch(err => {
+                console.error('PDF generation error:', err);
+                if (element.parentNode) document.body.removeChild(element);
+            });
+        }
+
+        function sendEmailWithAttachment(report, pdfBlob, filename, history) {
+            const emailBody = buildEmailBody(report);
+            const formData = new FormData();
+            formData.append('email', TARGET_EMAIL);
+            formData.append('subject', `Grill Cleaning Report - ${report.date} - ${report.location}`);
+            formData.append('message', emailBody);
+            formData.append('attachment', pdfBlob, filename);
+
+            fetch(`https://formsubmit.co/ajax/${TARGET_EMAIL}`, {
+                method: 'POST', body: formData, headers: { 'Accept': 'application/json' }
+            })
+            .then(() => markSent(report, history))
+            .catch(() => markSent(report, history));
+        }
+
+        function markSent(report, history) {
+            report.status = 'sent';
+            if (history && history[0]) history[0].status = 'sent';
+            localStorage.setItem('grillHistory', JSON.stringify(history));
+            loadHistory();
+        }
+
+        function showSuccessMessage() {
+            const msg = document.getElementById('successMessage');
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 4000);
+        }
+
+        function resetForm() {
+            document.getElementById('cleanDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('technicianName').value = '';
+            document.getElementById('grillLocation').value = '';
+            document.getElementById('signature').value = '';
+            document.getElementById('notes').value = '';
+            ITEMS.forEach(item => {
+                const row = document.getElementById('row_' + item.id);
+                const box = document.getElementById('box_' + item.id);
+                if (row) { row.classList.remove('checked'); row.dataset.value = ''; }
+                if (box) box.textContent = '';
+            });
+            localStorage.removeItem('grillCurrentForm');
+        }
+
+        function checkPendingReports() {
+            const pending = JSON.parse(localStorage.getItem('grillPendingEmails')) || [];
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('pendingReports').classList.toggle('show', pending.length > 0);
+        }
+
+        function buildEmailBody(report) {
+            let body = `GRILL CLEANING REPORT\n`;
+            body += `========================================\n\n`;
+            body += `Date: ${report.date}\n`;
+            body += `Grill / Location: ${report.location}\n`;
+            body += `Technician: ${report.technician}\n`;
+            body += `Signature: ${report.signature || '(not signed)'}\n`;
+            body += `Submitted: ${new Date(report.timestamp).toLocaleString()}\n\n`;
+            body += `CHECKLIST RESULTS:\n----------------------------------------\n`;
+            ITEMS.forEach(item => {
+                const status = report.items[item.id] === 'done' ? 'COMPLETE' : 'NOT COMPLETED';
+                body += `${item.label}: ${status}\n`;
+            });
+            if (report.notes) {
+                body += `\nADDITIONAL NOTES:\n----------------------------------------\n${report.notes}\n`;
+            }
+            body += `\n========================================\nGenerated by the Grill Cleaning Checklist App\n`;
+            return body;
+        }
+
+        function downloadReportPDF(report) {
+            const element = document.createElement('div');
+            element.innerHTML = generatePDFHTML(report);
+            element.style.position = 'fixed';
+            element.style.top = '0';
+            element.style.left = '-9999px';
+            element.style.width = '800px';
+            element.style.background = '#ffffff';
+            document.body.appendChild(element);
+
+            const opt = {
+                margin: 10,
+                filename: `Grill_Cleaning_${report.date}_${report.location.replace(/\s+/g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, backgroundColor: '#ffffff' },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.removeChild(element);
+            }).catch(err => {
+                console.error('PDF generation error:', err);
+                document.body.removeChild(element);
+            });
+        }
+
+        function generatePDFHTML(report) {
+            let html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
+                    <h1 style="text-align:center;color:#1A1A2E;">Grill Cleaning Report</h1>
+                    <div style="background:#F5EFE6;border-left:4px solid #C8A96E;padding:15px;margin:20px 0;border-radius:5px;">
+                        <p><strong>Date:</strong> ${report.date}</p>
+                        <p><strong>Grill / Location:</strong> ${report.location}</p>
+                        <p><strong>Technician:</strong> ${report.technician}</p>
+                        <p><strong>Signature:</strong> ${report.signature || '(not signed)'}</p>
+                        <p><strong>Submitted:</strong> ${new Date(report.timestamp).toLocaleString()}</p>
+                    </div>
+                    <h2 style="color:#1A1A2E;margin-top:30px;">Checklist Results</h2>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <tr style="background:#1A1A2E;">
+                            <th style="text-align:left;padding:10px;border:1px solid #ddd;color:#fff;">Item</th>
+                            <th style="text-align:right;padding:10px;border:1px solid #ddd;color:#fff;">Status</th>
+                        </tr>
+            `;
+            ITEMS.forEach(item => {
+                const done = report.items[item.id] === 'done';
+                const color = done ? '#27ae60' : '#e74c3c';
+                const text = done ? '✅ COMPLETE' : '❌ NOT COMPLETED';
+                html += `
+                    <tr>
+                        <td style="padding:10px;border:1px solid #ddd;">${item.label}</td>
+                        <td style="padding:10px;border:1px solid #ddd;text-align:right;color:${color};font-weight:bold;">${text}</td>
+                    </tr>`;
+            });
+            html += `</table>`;
+            if (report.notes) {
+                html += `<h2 style="color:#1A1A2E;margin-top:30px;">Additional Notes</h2><p>${report.notes}</p>`;
+            }
+            html += `
+                    <div style="margin-top:40px;padding-top:20px;border-top:2px solid #C8A96E;text-align:center;color:#999;font-size:12px;">
+                        <p>Generated by the Grill Cleaning Checklist App — Onni Group</p>
+                    </div>
+                </div>`;
+            return html;
+        }
+
+        function viewReport(index) {
+            const history = JSON.parse(localStorage.getItem('grillHistory')) || [];
+            if (history[index]) downloadReportPDF(history[index]);
+        }
+
+        function switchTab(e, tabName) {
+            e.preventDefault();
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            e.target.classList.add('active');
+        }
+
+        function generateQRCode() {
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById('qrcode'), {
+                text: PAGE_URL, width: 220, height: 220, colorDark: '#1A1A2E', colorLight: '#ffffff'
+            });
+            document.getElementById('shareLink').textContent = PAGE_URL;
+        }
+    </script>
+</body>
+</html>
